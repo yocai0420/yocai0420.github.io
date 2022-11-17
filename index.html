@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="Geomapping.css">
+<html>
+    <head>
+        <title>Michigan Population Density</title>
+    </head>
+        <h1 style = "text-align:center; color:steelblue"><bold> Michigan Population Density, 2022 </bold></h1>
+
+
+<svg width="960" height="1100"></svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+<script src="https://d3js.org/topojson.v2.min.js"></script>
+<script>
+
+var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+
+var tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
+    
+var checkBox = document.getElementById("colorButton");
+    
+var path = d3.geoPath();
+
+var color= d3.scaleThreshold()
+                .domain([1, 10, 50, 200, 500, 1000, 2000, 4000])
+                .range(d3.schemeOrRd[9]);
+    
+var vendorcolor= d3.scaleThreshold()
+                .domain([1, 10, 50, 200, 500, 1000, 2000, 4000])
+                .range(d3.schemeBlues[9]);
+
+var x = d3.scaleSqrt()
+    .domain([0, 4500])
+    .rangeRound([440, 950]);
+
+var g = svg.append("g")
+    .attr("class", "key")
+    .attr("transform", "translate(0,40)");
+
+g.selectAll("rect")
+  .data(color.range().map(function(d) {
+      d = color.invertExtent(d);
+      if (d[0] == null) d[0] = x.domain()[0];
+      if (d[1] == null) d[1] = x.domain()[1];
+      return d;
+    }))
+  .enter().append("rect")
+    .attr("height", 8)
+    .attr("x", function(d) { return x(d[0]); })
+    .attr("width", function(d) { return x(d[1]) - x(d[0]); })
+    .attr("fill", function(d) { return color(d[0]); });
+
+g.append("text")
+    .attr("class", "caption")
+    .attr("x", x.range()[0])
+    .attr("y", -6)
+    .attr("fill", "#000")
+    .attr("text-anchor", "start")
+    .attr("font-weight", "bold")
+    .text("Population per square mile");
+
+g.call(d3.axisBottom(x)
+    .tickSize(13)
+    .tickValues(color.domain()))
+  .select(".domain")
+    .remove();
+
+d3.json("mi-topo.json", function(error, topology) {
+  if (error) throw error;
+
+  svg.append("g")
+    .selectAll("path")
+    .data(topojson.feature(topology, topology.objects.tracts).features)
+    .enter().append("path")
+      .attr("fill", function(d) { return color(d.properties.density); })
+      .attr("d", path)
+        .on("mouseover", function(d) {
+        tooltip.transition()
+            .duration(200)
+            .style("opacity", .9);
+        tooltip.html("<center> Population Density: " + d.properties.density + " Persons/Square Mile")
+                    .style("left", d3.event.pageX + "px")
+                    .style("top", d3.event.pageY + "px");
+    })
+      .on("mousemove", function(d){
+        tooltip.style("left", d3.event.pageX + 15 +"px")
+        tooltip.style("top", d3.event.pageY+"px")
+    })
+        //Then Add .on("mouseout", ....
+    .on("mouseout", function() {
+        tooltip.transition()
+            .duration(500)
+            .style("opacity", 0);
+    });
+
+    
+  svg.append("path")
+      .datum(topojson.feature(topology, topology.objects.counties))
+      .attr("fill", "none")
+      .attr("stroke", "#000")
+      .attr("stroke-opacity", 0.3)
+      .attr("d", path);
+
+});
+
+
+    
+function myFunction(){
+var checkBox = document.getElementById("colorButton");
+if (checkBox.checked == true){
+    d3.selectAll("rect")
+        .transition()
+        .duration(500)
+        .style("fill", function(d) { return vendorcolor(d[0]); })
+    
+d3.json("mi-topo.json", function(error, topology) {
+  if (error) throw error;
+
+    d3.selectAll("path")
+    .data(topojson.feature(topology, topology.objects.tracts).features)
+    .transition()
+    .duration(500)
+      .style("fill", function(d) { return vendorcolor(d.properties.density); })
+    
+});
+
+} else {
+    d3.selectAll("rect")
+        .transition()
+        .duration(500)
+        .style("fill", function(d) { return color(d[0]); })
+    
+    d3.json("mi-topo.json", function(error, topology) {
+    if (error) throw error;
+
+    d3.selectAll("path")
+    .data(topojson.feature(topology, topology.objects.tracts).features)
+    .transition()
+    .duration(500)
+      .style("fill", function(d) { return color(d.properties.density); })
+        
+    });
+    }
+
+}
+    
+function CBFunction(){
+var checkBox = document.getElementById("cbButton");
+if (checkBox.checked == true){
+//    d3.selectAll("path")
+//        .transition()
+//        .duration(500)
+//        .style("stroke","black");
+        d3.json("mi-topo.json", function(error, topology) {
+    if (error) throw error;
+
+  svg.selectAll("path")
+      .datum(topojson.feature(topology, topology.objects.counties))
+      .transition()
+    .duration(500)
+      .style("stroke-opacity", 0);
+        
+    });
+
+} else {
+//    d3.selectAll("path")
+//    .transition()
+//    .duration(500)
+//    .style("stroke","none");
+    d3.json("mi-topo.json", function(error, topology) {
+    if (error) throw error;
+
+  svg.selectAll("path")
+      .datum(topojson.feature(topology, topology.objects.counties))
+      .transition()
+    .duration(500)
+      .style("stroke-opacity", 0.3);
+        
+    });
+    
+    }
+
+}
+</script>
+
+
+<body>
+    <label><input class="mui-switch" name="checkbox" type="checkbox" id="colorButton" onclick="myFunction()"> Color Switch</label>
+    <label><input class="mui-switch" name="checkbox" type="checkbox" id="cbButton" onclick="CBFunction()"> Toggle Country Boundary</label>
+    <h4>
+        Yongmao Cai 
+    </h4>
+    <h4>
+        Instructor: Suresh Lodha
+    </h4>
+    <h4>
+        CMPS 163: Data programming for Visualization
+    </h4>
+    <h4>
+        Fall 2022
+    </h4>
+</body>
+</html>
+
